@@ -6,6 +6,24 @@
   const CONTACT_EMAIL = 'partner@altioranorthern.com';
   const WHATSAPP = 'https://wa.me/923180148480';
 
+  /* Paste your GA4 Measurement ID after creating the property (looks like G-XXXXXXXXXX).
+     Leave empty until you have it — analytics will not load until filled in. */
+  const GA_MEASUREMENT_ID = 'G-P9Q7S4G430';
+
+  const initAnalytics = () => {
+    if (!GA_MEASUREMENT_ID || !GA_MEASUREMENT_ID.startsWith('G-')) return;
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { window.dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', GA_MEASUREMENT_ID, { anonymize_ip: true });
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_MEASUREMENT_ID);
+    document.head.appendChild(s);
+  };
+  initAnalytics();
+
   let lang = localStorage.getItem('altiora-lang') || 'en';
   let activeDestKey = null;
 
