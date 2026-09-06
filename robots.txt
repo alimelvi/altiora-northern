@@ -1,0 +1,5 @@
+# Altiora Northern — update Sitemap URL when domain goes live
+User-agent: *
+Allow: /
+
+Sitemap: https://www.altioranorthern.com/sitemap.xml
