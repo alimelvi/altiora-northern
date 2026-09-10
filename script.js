@@ -1,17 +1,13 @@
-/* Altiora Northern — Interactivity + i18n */
-
+/* Altiora Northern — sitewide interactions */
 (function () {
   'use strict';
 
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const CONTACT_EMAIL = 'partner@altioranorthern.com';
-  const WHATSAPP = 'https://wa.me/923180148480';
-
-  /* Paste your GA4 Measurement ID after creating the property (looks like G-XXXXXXXXXX).
-     Leave empty until you have it — analytics will not load until filled in. */
   const GA_MEASUREMENT_ID = 'G-P9Q7S4G430';
 
-  const initAnalytics = () => {
-    if (!GA_MEASUREMENT_ID || !GA_MEASUREMENT_ID.startsWith('G-')) return;
+  /* —— Analytics —— */
+  if (GA_MEASUREMENT_ID && GA_MEASUREMENT_ID.startsWith('G-')) {
     window.dataLayer = window.dataLayer || [];
     function gtag() { window.dataLayer.push(arguments); }
     window.gtag = gtag;
@@ -21,303 +17,163 @@
     s.async = true;
     s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA_MEASUREMENT_ID);
     document.head.appendChild(s);
-  };
-  initAnalytics();
-
-  let lang = localStorage.getItem('altiora-lang') || 'en';
-  let activeDestKey = null;
-
-  const destModal = document.getElementById('destModal');
-  const destModalRegion = document.getElementById('destModalRegion');
-  const destModalTitle = document.getElementById('destModalTitle');
-  const destModalBody = document.getElementById('destModalBody');
-  const destModalHighlights = document.getElementById('destModalHighlights');
-  const destModalSeason = document.getElementById('destModalSeason');
-  const destInquireBtn = document.getElementById('destInquireBtn');
-
-  const getDict = () => (window.ALTIORA_I18N && window.ALTIORA_I18N[lang]) || (window.ALTIORA_I18N && window.ALTIORA_I18N.en) || {};
-  const getDestPack = () => (window.ALTIORA_DEST && window.ALTIORA_DEST[lang]) || (window.ALTIORA_DEST && window.ALTIORA_DEST.en) || {};
-
-  const fillDestModal = (key) => {
-    const data = getDestPack()[key];
-    if (!data || !destModal) return;
-    activeDestKey = key;
-    destModalRegion.textContent = data.region;
-    destModalTitle.textContent = data.title;
-    destModalBody.textContent = data.body;
-    destModalSeason.textContent = data.season;
-    destModalHighlights.innerHTML = (data.highlights || []).map((item) => `<li>${item}</li>`).join('');
-  };
-
-  const openDestModal = (key) => {
-    fillDestModal(key);
-    if (!destModal) return;
-    destModal.hidden = false;
-    document.body.style.overflow = 'hidden';
-  };
-
-  const closeDestModal = () => {
-    if (!destModal) return;
-    destModal.hidden = true;
-    document.body.style.overflow = '';
-  };
-
-  const applyLang = (next) => {
-    lang = next === 'zh' ? 'zh' : 'en';
-    localStorage.setItem('altiora-lang', lang);
-
-    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-    document.body.classList.toggle('lang-zh', lang === 'zh');
-
-    const dict = getDict();
-
-    document.querySelectorAll('[data-i18n]').forEach((el) => {
-      const key = el.getAttribute('data-i18n');
-      const val = dict[key];
-      if (val == null) return;
-
-      const attr = el.getAttribute('data-i18n-attr');
-      if (attr) {
-        el.setAttribute(attr, val);
-        if (attr !== 'aria-label' && el.childNodes.length === 0 && !el.querySelector('svg')) {
-          el.textContent = val;
-        }
-        return;
-      }
-
-      if (el.hasAttribute('data-i18n-html') || el.getAttribute('data-i18n-html') === 'true') {
-        el.innerHTML = val;
-        return;
-      }
-
-      if (el.tagName === 'META') {
-        el.setAttribute('content', val);
-        return;
-      }
-
-      if (el.tagName === 'TITLE') {
-        el.textContent = val;
-        document.title = val;
-        return;
-      }
-
-      el.textContent = val;
-    });
-
-    if (dict['meta.title']) document.title = dict['meta.title'];
-
-    document.querySelectorAll('#langSwitch [data-lang]').forEach((btn) => {
-      const active = btn.getAttribute('data-lang') === lang;
-      btn.classList.toggle('is-active', active);
-      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-
-    if (activeDestKey && destModal && !destModal.hidden) {
-      fillDestModal(activeDestKey);
-    }
-  };
-
-  // Language switch
-  document.querySelectorAll('#langSwitch [data-lang]').forEach((btn) => {
-    btn.addEventListener('click', () => applyLang(btn.getAttribute('data-lang')));
-  });
-  const langSolo = document.getElementById('langSwitch');
-  if (langSolo && langSolo.tagName === 'BUTTON') {
-    langSolo.addEventListener('click', () => applyLang(lang === 'en' ? 'zh' : 'en'));
   }
-  applyLang(lang);
 
-  // Header scroll
-  const header = document.getElementById('header');
-  const onScroll = () => {
-    header?.classList.toggle('scrolled', window.scrollY > 60);
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  /* —— Compass cursor on EVERY page —— */
+  function initCompassCursor() {
+    if (reduceMotion) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return;
 
-  // Mobile nav
-  const navToggle = document.getElementById('navToggle');
-  const navLinks = document.getElementById('navLinks');
+    let cursor = document.getElementById('compassCursor');
+    if (!cursor) {
+      cursor = document.createElement('div');
+      cursor.id = 'compassCursor';
+      cursor.className = 'compass-cursor';
+      cursor.setAttribute('aria-hidden', 'true');
+      cursor.innerHTML =
+        '<svg viewBox="0 0 48 48" width="48" height="48">' +
+        '<circle cx="24" cy="24" r="18" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>' +
+        '<circle cx="24" cy="24" r="3" fill="currentColor"/>' +
+        '<path class="compass-needle" d="M24 8 L27 24 L24 40 L21 24 Z" fill="currentColor"/>' +
+        '</svg>';
+      document.body.appendChild(cursor);
+    }
 
-  navToggle?.addEventListener('click', () => {
-    navToggle.classList.toggle('open');
-    navLinks?.classList.toggle('open');
-  });
+    document.documentElement.classList.add('has-compass-cursor');
+    const needle = cursor.querySelector('.compass-needle');
+    let mx = window.innerWidth / 2;
+    let my = window.innerHeight / 2;
+    let cx = mx;
+    let cy = my;
+    let angle = 0;
 
-  navLinks?.querySelectorAll('a').forEach((link) => {
-    link.addEventListener('click', () => {
-      navToggle?.classList.remove('open');
-      navLinks?.classList.remove('open');
+    window.addEventListener('pointermove', function (e) {
+      mx = e.clientX;
+      my = e.clientY;
+      cursor.classList.add('is-on');
+    }, { passive: true });
+
+    document.addEventListener('pointerover', function (e) {
+      const hot = e.target.closest && e.target.closest('a, button, summary, input, select, textarea, .corridor-card, .route-tile');
+      cursor.classList.toggle('is-hot', !!hot);
+    }, true);
+
+    function tick() {
+      cx += (mx - cx) * 0.2;
+      cy += (my - cy) * 0.2;
+      var target = Math.atan2(my - cy, mx - cx) * (180 / Math.PI) + 90;
+      var diff = target - angle;
+      while (diff > 180) diff -= 360;
+      while (diff < -180) diff += 360;
+      angle += diff * 0.14;
+      cursor.style.transform = 'translate3d(' + cx + 'px,' + cy + 'px,0) translate(-50%,-50%)';
+      if (needle) needle.setAttribute('transform', 'rotate(' + angle + ' 24 24)');
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  initCompassCursor();
+
+  /* —— Header —— */
+  var header = document.getElementById('siteHeader') || document.querySelector('.site-header') || document.querySelector('.header');
+  if (header) {
+    var onScroll = function () {
+      header.classList.toggle('is-solid', window.scrollY > 24);
+      header.classList.toggle('scrolled', window.scrollY > 24);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+
+  var toggle = document.getElementById('navToggle');
+  var nav = document.getElementById('siteNav') || document.querySelector('.site-nav') || document.querySelector('.nav');
+  if (toggle && nav) {
+    toggle.addEventListener('click', function () {
+      nav.classList.toggle('is-open');
+    });
+  }
+
+  /* —— i18n (home) —— */
+  var lang = localStorage.getItem('altiora-lang') || 'en';
+  function applyLang() {
+    if (!window.ALTIORA_I18N) return;
+    var dict = window.ALTIORA_I18N[lang] || window.ALTIORA_I18N.en || {};
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      if (!dict[key]) return;
+      if (el.getAttribute('data-i18n-html') === 'true') el.innerHTML = dict[key];
+      else el.textContent = dict[key];
+    });
+    document.querySelectorAll('#langSwitch [data-lang]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.getAttribute('data-lang') === lang);
+    });
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  }
+  document.querySelectorAll('#langSwitch [data-lang]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      lang = btn.getAttribute('data-lang');
+      localStorage.setItem('altiora-lang', lang);
+      applyLang();
     });
   });
+  applyLang();
 
-  const scrollToId = (id) => {
-    const target = document.querySelector(id);
-    if (!target) return;
-    const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h'), 10) || 80;
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: 'smooth' });
-  };
-
-  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener('click', (e) => {
-      const href = anchor.getAttribute('href');
-      if (!href || href === '#') return;
-      const target = document.querySelector(href);
-      if (!target) return;
-      e.preventDefault();
-      scrollToId(href);
-    });
-  });
-
-  // Scroll reveal
-  const revealElements = document.querySelectorAll(
-    '.service-card, .dest-card, .why-card, .testimonial, .faq-item, .about-text, .about-images, .section-header, .contact-info, .contact-form'
-  );
-  revealElements.forEach((el) => el.classList.add('reveal'));
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
+  /* —— Reveal —— */
+  if (!reduceMotion) {
+    var els = document.querySelectorAll(
+      '.corridor-card, .route-tile, .voice, .about-band > div, .feature-split-copy, .section-intro, .faq-new details, .contact-new > div, .seo-cols > div'
+    );
+    els.forEach(function (el) { el.classList.add('reveal'); });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
+          io.unobserve(entry.target);
         }
       });
-    },
-    { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
-  );
-  revealElements.forEach((el) => observer.observe(el));
-
-  document.querySelectorAll('.service-card').forEach((card, i) => {
-    card.style.transitionDelay = `${i * 0.08}s`;
-  });
-  document.querySelectorAll('.why-card').forEach((card, i) => {
-    card.style.transitionDelay = `${i * 0.1}s`;
-  });
-
-  // Destination modal
-  document.querySelectorAll('.dest-card[data-dest]').forEach((card) => {
-    card.addEventListener('click', () => openDestModal(card.dataset.dest));
-  });
-
-  destModal?.querySelectorAll('[data-close-modal]').forEach((el) => {
-    el.addEventListener('click', closeDestModal);
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && destModal && !destModal.hidden) closeDestModal();
-  });
-
-  destInquireBtn?.addEventListener('click', () => {
-    const data = getDestPack()[activeDestKey];
-    closeDestModal();
-    const service = document.getElementById('service');
-    const message = document.getElementById('message');
-    if (service && activeDestKey) service.value = activeDestKey;
-    if (message && data) {
-      message.value = lang === 'zh'
-        ? `我对以${data.title}为主的行程感兴趣。请提供方案、建议行程与参考报价。`
-        : `I am interested in a trip or program focused on ${data.title}. Please share options, suggested itineraries, and indicative pricing.`;
-      message.focus();
-    }
-    scrollToId('#contact');
-  });
-
-  // Contact form → mailto partner@
-  const contactForm = document.getElementById('contactForm');
-
-  contactForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const formData = new FormData(contactForm);
-    const data = Object.fromEntries(formData.entries());
-    const dict = getDict();
-
-    const subject = encodeURIComponent(
-      `Altiora Northern Inquiry — ${data.inquiry_type || 'General'} (${data.name || 'Guest'})`
-    );
-    const body = encodeURIComponent(
-      [
-        `Name: ${data.name || ''}`,
-        `Email: ${data.email || ''}`,
-        `Company: ${data.company || 'N/A'}`,
-        `Country: ${data.country || 'N/A'}`,
-        `Contacting as: ${data.inquiry_type || 'N/A'}`,
-        `Service interest: ${data.service || 'N/A'}`,
-        `Preferred language: ${lang === 'zh' ? 'Chinese' : 'English'}`,
-        '',
-        'Message:',
-        data.message || ''
-      ].join('\n')
-    );
-
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
-
-    const successTitle = dict['contact.success.t'] || 'Thank You for Your Inquiry';
-    const successBody = dict['contact.success.p'] ||
-      `Your email app should open addressed to ${CONTACT_EMAIL}. You can also reach us on WhatsApp at +92 318 014 8480.`;
-
-    contactForm.innerHTML = `<div class="form-success">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-        <polyline points="22 4 12 14.01 9 11.01"/>
-      </svg>
-      <h3>${successTitle}</h3>
-      <p>${successBody.replace(CONTACT_EMAIL, `<strong>${CONTACT_EMAIL}</strong>`).replace('+92 318 014 8480', `<a href="${WHATSAPP}" target="_blank" rel="noopener noreferrer">+92 318 014 8480</a>`)}</p>
-    </div>`;
-  });
-
-  // Active nav link
-  const sections = document.querySelectorAll('section[id]');
-  const navItems = document.querySelectorAll('.nav-links a:not(.nav-cta)');
-
-  const highlightNav = () => {
-    const scrollPos = window.scrollY + 120;
-    let current = '';
-    sections.forEach((section) => {
-      if (scrollPos >= section.offsetTop) current = section.getAttribute('id');
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    els.forEach(function (el, i) {
+      el.style.transitionDelay = Math.min(i % 6, 5) * 0.06 + 's';
+      io.observe(el);
     });
-    navItems.forEach((item) => {
-      const href = item.getAttribute('href').replace('#', '');
-      item.style.color = href === current ? 'var(--color-accent)' : '';
-    });
-  };
-  window.addEventListener('scroll', highlightNav, { passive: true });
-
-  // Hero parallax
-  const heroBg = document.querySelector('.hero-bg');
-  if (heroBg) {
-    window.addEventListener('scroll', () => {
-      heroBg.style.transform = `scale(1.05) translateY(${window.scrollY * 0.35}px)`;
-    }, { passive: true });
   }
 
-  // Count-up stats
-  const countUp = (el) => {
-    const target = parseInt(el.dataset.count, 10);
-    const suffix = el.dataset.suffix || '';
-    const duration = 1800;
-    const start = performance.now();
-    const tick = (now) => {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const value = Math.floor(eased * target);
-      el.textContent = value >= 1000 ? value.toLocaleString() + suffix : value + suffix;
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  };
+  /* —— Corridor drag hint —— */
+  var track = document.querySelector('.corridor-track');
+  if (track) {
+    var isDown = false;
+    var startX = 0;
+    var scrollLeft = 0;
+    track.addEventListener('pointerdown', function (e) {
+      isDown = true;
+      startX = e.pageX - track.offsetLeft;
+      scrollLeft = track.scrollLeft;
+      track.setPointerCapture(e.pointerId);
+    });
+    track.addEventListener('pointerup', function () { isDown = false; });
+    track.addEventListener('pointerleave', function () { isDown = false; });
+    track.addEventListener('pointermove', function (e) {
+      if (!isDown) return;
+      e.preventDefault();
+      var x = e.pageX - track.offsetLeft;
+      track.scrollLeft = scrollLeft - (x - startX);
+    });
+  }
 
-  const statsObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          countUp(entry.target);
-          statsObserver.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.5 }
-  );
-  document.querySelectorAll('.stat-num[data-count]').forEach((el) => statsObserver.observe(el));
+  /* —— Contact form —— */
+  var form = document.getElementById('contactForm');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = (form.querySelector('#name') || {}).value || '';
+      var email = (form.querySelector('#email') || {}).value || '';
+      var message = (form.querySelector('#message') || {}).value || '';
+      var type = (form.querySelector('#inquiry-type') || {}).value || '';
+      var subject = encodeURIComponent('Pakistan tour enquiry — ' + (name || 'Website'));
+      var body = encodeURIComponent(
+        'Name: ' + name + '\nEmail: ' + email + '\nType: ' + type + '\n\n' + message
+      );
+      window.location.href = 'mailto:' + CONTACT_EMAIL + '?subject=' + subject + '&body=' + body;
+    });
+  }
 })();
